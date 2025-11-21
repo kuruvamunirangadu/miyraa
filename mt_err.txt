@@ -1,0 +1,9 @@
+Traceback (most recent call last):
+  File "c:\Users\kuruv\project\Miyraa\scripts\train_multi_task.py", line 311, in <module>
+    main()
+  File "c:\Users\kuruv\project\Miyraa\scripts\train_multi_task.py", line 307, in main
+    train(args)
+  File "c:\Users\kuruv\project\Miyraa\scripts\train_multi_task.py", line 117, in train
+    opt = optim.Adam(model.parameters(), lr=args.lr)
+                     ^^^^^^^^^^^^^^^^
+AttributeError: 'NoneType' object has no attribute 'parameters'

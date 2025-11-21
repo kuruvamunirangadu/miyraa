@@ -1,0 +1,36 @@
+name: Torch Smoke Test (CPU)
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  torch-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install minimal requirements
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Install CPU PyTorch wheel
+        run: |
+          # Use PyTorch CPU wheels (no CUDA) to keep CI portable
+          pip install --index-url https://download.pytorch.org/whl/cpu torch
+
+      - name: Install onnxruntime
+        run: |
+          pip install onnxruntime
+
+      - name: Run smoke training test (torch)
+        run: |
+          pytest -q tests/test_smoke_accuracy.py::test_smoke_train --maxfail=1 -q

@@ -1,0 +1,10 @@
+Failed to use transformers-based embedder 'sentence-transformers/all-MiniLM-L6-v2': name 'np' is not defined
+Attempting to import sentence-transformers as fallback...
+Epoch 1/6 mean loss: 0.9429
+Epoch 2/6 mean loss: 0.2044
+Epoch 3/6 mean loss: 0.1448
+Epoch 4/6 mean loss: 0.1206
+Epoch 5/6 mean loss: 0.0002
+Epoch 6/6 mean loss: 0.0016
+Saved checkpoint to outputs\tiny_checkpoint_embed_small.pt
+Saved loss plot to reports\loss_embed_small.png
