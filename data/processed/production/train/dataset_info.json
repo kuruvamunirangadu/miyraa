@@ -1,0 +1,33 @@
+{
+  "citation": "",
+  "description": "",
+  "features": {
+    "text": {
+      "dtype": "string",
+      "_type": "Value"
+    },
+    "labels": {
+      "feature": {
+        "dtype": "int64",
+        "_type": "Value"
+      },
+      "_type": "Sequence"
+    },
+    "vad": {
+      "a": {
+        "dtype": "float64",
+        "_type": "Value"
+      },
+      "d": {
+        "dtype": "float64",
+        "_type": "Value"
+      },
+      "v": {
+        "dtype": "float64",
+        "_type": "Value"
+      }
+    }
+  },
+  "homepage": "",
+  "license": ""
+}

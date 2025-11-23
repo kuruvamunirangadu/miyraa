@@ -1,4 +1,22 @@
 {
-  "emotions_macro_f1": 0.176214176458946,
-  "vad_ccc": 0.48958165884470023
+  "emotions_macro_f1": 0.1670399921074668,
+  "vad_ccc": 0.015345565097761006,
+  "style_summary": {
+    "shape": [
+      500,
+      5
+    ]
+  },
+  "intent_summary": {
+    "shape": [
+      500,
+      6
+    ]
+  },
+  "safety_summary": {
+    "shape": [
+      500,
+      4
+    ]
+  }
 }

@@ -383,7 +383,7 @@ def train(args):
     intent_preds = (intent_probs >= np.array(thresholds.get("intent_thresholds", [0.5] * intent_probs.shape[1]))).astype(int)
     saf_preds = (saf_probs >= np.array(thresholds.get("safety_thresholds", [0.5] * saf_probs.shape[1]))).astype(int)
 
-    report = eval_report(y_true_emotions=(y_emo.cpu().numpy()), y_pred_emotions=emo_preds, y_true_vad=y_vad.cpu().numpy(), y_pred_vad=vad_pred)
+    report = eval_report(emotions_true=y_emo.cpu().numpy(), emotions_pred=emo_preds, vad_true=y_vad.cpu().numpy(), vad_pred=vad_pred)
     # add per-head summaries
     report["style_summary"] = {"shape": list(style_preds.shape)}
     report["intent_summary"] = {"shape": list(intent_preds.shape)}

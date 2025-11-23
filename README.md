@@ -1,72 +1,324 @@
-# miyraa
+# Miyraa NLP Emotion Engine
 
-Lightweight development repo for preparing small local emotion-classification datasets, exporting fused ONNX models, and running static quantization. Includes a minimal CI workflow with ONNX and optional Torch smoke tests. Useful for fast prototyping, calibration, and model verification on CPU-only environments.
+Production-ready multi-task emotion classification system with comprehensive preprocessing, augmentation, and data quality tools. Supports 11 core emotions, VAD dimensions, safety detection, style analysis, and intent recognition.
+
+## Features
+
+- 🎭 **11 Core Emotions**: joy, love, surprise, sadness, anger, fear, disgust, calm, excitement, confusion, neutral
+- 📊 **VAD Dimensions**: Valence-Arousal-Dominance regression for each emotion
+- 🛡️ **Safety Detection**: 4 categories (toxic, profane, threatening, harassment)
+- ✍️ **Style Analysis**: 5 writing styles (formal, casual, assertive, empathetic, humorous)
+- 🎯 **Intent Recognition**: 6 intent types (statement, question, request, command, expression, social)
+- 🔧 **Text Preprocessing**: Social media, emoji, slang, hashtag normalization
+- 📈 **Data Augmentation**: 5 strategies (synonym replacement, insertion, swap, deletion, back-translation)
+- 🤖 **Enhanced Architecture**: Focal loss, uncertainty weighting, flexible backbone freezing
+- 🎯 **Regularization**: Dropout, layer normalization, early stopping, gradient clipping
+- 🔄 **5 Backbones Supported**: MiniLM-L6/L12, XtremeDistil, DistilRoBERTa, XLM-RoBERTa
+- 🐳 **Docker Support**: Production containerization with health checks
+- 🔒 **PII Scrubbing**: Presidio integration for enterprise-grade privacy
+- 📝 **API Documentation**: Complete REST API with examples
 
 ## Quick Start
 
-### Prepare a small HF-derived bootstrap dataset
+### 1. Setup Environment
 
-1. Activate your virtual environment (Windows cmd.exe):
+```bash
+# Create virtual environment
+python -m venv .venv
 
-```
+# Activate (Windows)
 .venv\Scripts\activate
+
+# Install dependencies
+pip install --upgrade pip
+pip install -r requirements.txt
 ```
 
-2. Install the datasets library (if not already):
+### 2. Generate Training Data
 
-```
-python -m pip install --upgrade pip
-python -m pip install datasets
-```
+```bash
+# Generate curated emotion samples (130 samples)
+python scripts\generate_curated_samples.py
 
-3. Run the data prep script (example with 200 examples):
+# Generate validation set (52 samples)
+python scripts\generate_validation_set.py
 
-```
-python scripts\prepare_data.py --from_hf go_emotions --n 200 --out data\processed\bootstrap
-```
-
-4. Inspect the saved dataset:
-
-```
-python scripts\inspect_bootstrap.py --path data\processed\bootstrap --n 3
+# Prepare data from HuggingFace (1000+ samples)
+python scripts\prepare_data.py --from_hf go_emotions --n 1000 --out data\processed\production
 ```
 
-If you want CI to run tests and linting, push to GitHub; the included workflow will run pytest and flake8.
+### 3. Train Model
 
-## New tools and workflows
+#### Basic Training (Frozen Backbone)
 
-We added static ONNX quantization tooling and a CI job that can run a Torch-based smoke test (CPU-only).
-
-Key files added:
-
-- `scripts/quantize_onnx_static.py` — performs ONNX static quantization using onnxruntime.quantization.quantize_static; accepts a small calibration file (JSONL with `text` entries) or samples from `data/processed/bootstrap`.
-- `.github/workflows/torch_smoke.yml` — GitHub Actions job that installs a CPU wheel of PyTorch and runs the smoke training test (`tests/test_smoke_accuracy.py`). This is slower than the ONNX smoke check, so it's optional; keep it if you want full torch verification in CI.
-- `requirements.txt` — a minimal set of Python dependencies (note: for CPU PyTorch we install in CI using the official CPU wheel index; do not add a GPU wheel to CI unless you need GPUs).
-
-## Quick usage
-
-### 1) Static quantization (uses calibration samples):
-
-Prepare a calibration file: a JSONL file with one JSON object per line containing a `text` field. Example:
-
-	{"text": "I love this product"}
-	{"text": "This is terrible"}
-
-Then run:
-
-```
-python scripts\quantize_onnx_static.py --input outputs\my_model.onnx --output outputs\my_model.quant.static.onnx --calibration-file data\processed\bootstrap\calibration.jsonl --samples 200
+```bash
+# Quick training with frozen backbone
+python scripts\train_enhanced.py ^
+  --backbone sentence-transformers/all-MiniLM-L6-v2 ^
+  --freeze-strategy full ^
+  --epochs 5 ^
+  --batch-size 32 ^
+  --lr 1e-3
 ```
 
-If you don't provide a calibration file, the script will try to sample `--samples` items from `data/processed/bootstrap` (if present).
+#### Production Training (Recommended)
 
-### 2) Export layout choice (single fused vs backbone+heads):
+```bash
+# Balanced training with focal loss and uncertainty weighting
+python scripts\train_enhanced.py ^
+  --backbone sentence-transformers/all-MiniLM-L6-v2 ^
+  --freeze-strategy partial ^
+  --freeze-layers 4 ^
+  --dropout 0.3 ^
+  --use-focal-loss ^
+  --focal-gamma 2.0 ^
+  --use-uncertainty-weighting ^
+  --epochs 10 ^
+  --batch-size 16 ^
+  --lr 2e-5 ^
+  --weight-decay 0.01 ^
+  --scheduler cosine ^
+  --patience 3
+```
 
-Option A (recommended for inference): export a single fused ONNX containing the backbone and all heads. This is easiest for inference because you only need to load one artifact. Use `--fused` on the export script if available.
+#### Maximum Performance Training
 
-Option B (modular): export backbone and heads separately (backbone ONNX + small per-head ONNXs). This is useful if you want to swap heads or conserve memory on-device by loading only required heads.
+```bash
+# Full fine-tuning with advanced regularization
+python scripts\train_enhanced.py ^
+  --backbone sentence-transformers/all-MiniLM-L12-v2 ^
+  --freeze-strategy none ^
+  --dropout 0.3 ^
+  --head-hidden-dims 512 256 128 ^
+  --use-focal-loss ^
+  --focal-gamma 2.5 ^
+  --emotion-weight 2.0 ^
+  --epochs 15 ^
+  --batch-size 8 ^
+  --lr 5e-6 ^
+  --weight-decay 0.01 ^
+  --max-grad-norm 1.0 ^
+  --scheduler plateau ^
+  --patience 5
+```
 
-Defaults used by the new static quantization script assume Option A (fused) unless you pass separate files.
+#### Legacy Training (Multi-task Script)
+
+```bash
+# Original multi-task training
+python scripts\train_multi_task.py ^
+  --data data\processed\production ^
+  --epochs 3 ^
+  --batch-size 16 ^
+  --output outputs\
+```
+
+### 4. Export & Quantize
+
+```bash
+# Export to ONNX
+python scripts\export_onnx.py --checkpoint outputs\checkpoint.pt --output outputs\model.onnx
+
+# Quantize for faster inference
+python scripts\quantize_onnx_static.py ^
+  --input outputs\model.onnx ^
+  --output outputs\model.quant.onnx ^
+  --calibration-file data\processed\bootstrap\calibration.jsonl
+```
+
+### 5. Run API Server
+
+```bash
+# Start FastAPI server
+python src\api\main.py
+
+# Or use Docker
+docker-compose up
+```
+
+## Data Quality & Preprocessing
+
+### Curated Datasets
+- **130 curated samples**: `data/processed/curated/samples.jsonl`
+  - All 11 emotions, 4 safety categories, 5 styles, 6 intents
+- **52 validation samples**: `data/processed/validation/samples.jsonl`
+  - Edge cases, mixed emotions, sarcasm, ambiguity
+
+### Preprocessing Tools
+```python
+from src.nlp.preprocessing.text_cleaner import preprocess_text
+
+# Clean social media text
+text = "OMG @user this is sooooo cool!!! 😍 #amazing"
+clean = preprocess_text(text, lowercase=True, handle_emojis='convert')
+# Output: "oh my god [USER] this is soo cool !! love amazing"
+```
+
+### Text Augmentation
+```python
+from src.nlp.preprocessing.augmentation import augment_text
+
+# Generate variations
+augmented = augment_text("I am very happy", method="sr", num_aug=3)
+# Output: ["I am very joyful", "I am very cheerful", "I am very pleased"]
+```
+
+See [`docs/PREPROCESSING.md`](docs/PREPROCESSING.md) for complete documentation.
+
+## Project Structure
+
+```
+miyraa/
+├── src/
+│   ├── api/                    # FastAPI REST API
+│   ├── nlp/
+│   │   ├── data/
+│   │   │   └── taxonomy.py     # Emotion taxonomy & label mapping
+│   │   ├── inference/          # Inference engines
+│   │   ├── preprocessing/
+│   │   │   ├── text_cleaner.py # Noisy text preprocessing
+│   │   │   ├── augmentation.py # Data augmentation
+│   │   │   ├── label_mapping.py
+│   │   │   └── normalize.py
+│   │   ├── safety/
+│   │   │   └── pii_scrub.py    # Presidio PII detection
+│   │   └── training/
+│   │       └── losses.py       # Multi-task loss functions
+│   └── server/
+│       └── app.py              # Legacy server
+├── scripts/
+│   ├── generate_curated_samples.py    # Create curated dataset
+│   ├── generate_validation_set.py     # Create validation set
+│   ├── train_multi_task.py            # Multi-task training
+│   ├── export_onnx.py                 # ONNX export
+│   ├── quantize_onnx_static.py        # Static quantization
+│   ├── profile_inference.py           # Performance profiling
+│   └── prepare_data.py                # Data preparation
+├── data/
+│   └── processed/
+│       ├── curated/                   # 130 hand-crafted samples
+│       ├── validation/                # 52 validation samples
+│       ├── production/                # Training data
+│       └── bootstrap/                 # Calibration data
+├── docs/
+│   ├── PREPROCESSING.md               # Preprocessing guidelines
+│   ├── DATA_IMPROVEMENTS.md           # Data quality summary
+│   └── API.md                         # API documentation
+├── tests/                             # Unit & integration tests
+├── outputs/                           # Model checkpoints & ONNX
+├── Dockerfile                         # Production container
+├── docker-compose.yml                 # Container orchestration
+└── requirements.txt                   # Python dependencies
+```
+
+## Documentation
+
+- **[PREPROCESSING.md](docs/PREPROCESSING.md)**: Text normalization, augmentation, taxonomy
+- **[DATA_IMPROVEMENTS.md](docs/DATA_IMPROVEMENTS.md)**: Data quality enhancements summary
+- **[API.md](docs/API.md)**: REST API endpoints with examples
+- **[ONNX_QUANT_BENCH.md](docs/ONNX_QUANT_BENCH.md)**: ONNX quantization benchmarks
+
+## Technology Stack
+
+- **Framework**: PyTorch 2.5.1 (CPU)
+- **Transformers**: sentence-transformers/all-MiniLM-L6-v2 (384-dim)
+- **API**: FastAPI 0.100.0
+- **Inference**: ONNX Runtime (quantized models)
+- **Privacy**: Presidio Analyzer & Anonymizer
+- **NLP**: spaCy 3.5.0+
+- **Containerization**: Docker + docker-compose
+- **CI/CD**: GitHub Actions
+
+## Model Architecture
+
+Multi-task learning with shared backbone and 5 improved task-specific heads:
+
+```
+Input Text
+    ↓
+[Text Preprocessing]
+    ↓
+[Transformer Backbone] (flexible: MiniLM-L6/L12, DistilRoBERTa, XLM-RoBERTa)
+    (384-dim or 768-dim embeddings)
+    ↓
+┌────────────┬────────────┬────────────┬────────────┬────────────┐
+│  Emotions  │    VAD     │   Style    │   Intent   │   Safety   │
+│  (11 cls)  │  (3 reg)   │  (5 cls)   │  (6 cls)   │  (4 cls)   │
+│            │            │            │            │            │
+│ [256→128]  │ [256→128]  │ [256→128]  │ [256→128]  │ [256→128]  │
+│ LayerNorm  │ LayerNorm  │ LayerNorm  │ LayerNorm  │ LayerNorm  │
+│ Dropout    │ Dropout    │ Dropout    │ Dropout    │ Dropout    │
+│ Residual   │ Residual   │ Residual   │ Residual   │ Residual   │
+│            │            │            │            │            │
+│ FocalLoss  │   MSE      │   CE       │   CE       │   CE       │
+└────────────┴────────────┴────────────┴────────────┴────────────┘
+    ↓
+[Multi-Task Loss with Uncertainty Weighting]
+```
+
+**New Features**:
+- **Improved Task Heads**: Deeper architecture (256→128) with layer normalization, dropout (0.3), and residual connections
+- **Focal Loss**: Handles class imbalance for rare emotions (fear, disgust, calm)
+- **Uncertainty Weighting**: Automatically learns optimal task weights during training
+- **Flexible Freezing**: Full, partial, or progressive backbone unfreezing strategies
+- **Enhanced Regularization**: Early stopping, gradient clipping, LR scheduling
+
+See [docs/MODEL_IMPROVEMENTS.md](docs/MODEL_IMPROVEMENTS.md) for details.
+
+## API Usage
+
+### POST /api/v1/analyze
+```bash
+curl -X POST "http://localhost:8000/api/v1/analyze" \
+  -H "Content-Type: application/json" \
+  -d '{"text": "I love this product! It made my day!"}'
+```
+
+Response:
+```json
+{
+  "emotion": "joy",
+  "confidence": 0.92,
+  "vad": {"valence": 0.85, "arousal": 0.65, "dominance": 0.70},
+  "style": "casual",
+  "intent": "expression",
+  "safety": "safe"
+}
+```
+
+See [`docs/API.md`](docs/API.md) for complete API documentation.
+
+## Documentation
+
+- **[docs/MODEL_IMPROVEMENTS.md](docs/MODEL_IMPROVEMENTS.md)**: Model architecture enhancements (focal loss, uncertainty weighting, flexible freezing)
+- **[docs/DATA_QUALITY.md](docs/DATA_QUALITY.md)**: Data preprocessing, augmentation, and curation guidelines
+- **[docs/API.md](docs/API.md)**: Complete REST API documentation with examples
+- **[docs/ONNX_QUANT_BENCH.md](docs/ONNX_QUANT_BENCH.md)**: ONNX quantization benchmarks and performance optimization
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+## License
+
+MIT License - see LICENSE file for details
+
+## Citation
+
+If you use Miyraa in your research, please cite:
+
+```bibtex
+@software{miyraa2025,
+  title={Miyraa: Multi-Task Emotion Classification Engine},
+  author={Kuruvilla Munirangadu},
+  year={2025},
+  url={https://github.com/kuruvamunirangadu/miyraa}
+}
+```
 
 ### 3) CI Torch smoke job
 
