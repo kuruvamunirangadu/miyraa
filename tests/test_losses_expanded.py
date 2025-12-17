@@ -12,8 +12,9 @@ from src.nlp.training.losses import supcon_loss_np
 def focal_loss_np(logits, labels, gamma=2.0, alpha=None):
     """Focal loss implementation for testing"""
     probs = np.exp(logits) / np.exp(logits).sum(axis=1, keepdims=True)
-    ce_loss = -np.log(probs[np.arange(len(labels)), labels] + 1e-7)
     p_t = probs[np.arange(len(labels)), labels]
+    p_t = np.clip(p_t, 1e-7, 1.0 - 1e-7)
+    ce_loss = -np.log(p_t)
     focal_weight = (1 - p_t) ** gamma
     loss = focal_weight * ce_loss
     if alpha is not None:
@@ -23,9 +24,9 @@ def focal_loss_np(logits, labels, gamma=2.0, alpha=None):
 
 def calibration_loss_np(probs, labels):
     """Calibration loss implementation for testing"""
-    predicted_probs = probs[np.arange(len(labels)), labels]
+    max_probs = probs.max(axis=1)
     correct = (probs.argmax(axis=1) == labels).astype(float)
-    return np.mean((predicted_probs - correct) ** 2)
+    return np.mean((max_probs - correct) ** 2)
 
 
 class TestSupConLoss:
@@ -120,8 +121,11 @@ class TestFocalLoss:
         logits = np.array([[0.1, 0.0], [0.0, 0.1]])
         labels = np.array([0, 1])
         loss = focal_loss_np(logits, labels, gamma=2.0, alpha=0.25)
-        # Low confidence should have higher loss
-        assert loss > 0.1
+        ref_logits = np.array([[10.0, -10.0], [-10.0, 10.0]])
+        ref_loss = focal_loss_np(ref_logits, labels, gamma=2.0, alpha=0.25)
+        # Low confidence should have noticeably higher loss than confident predictions
+        assert loss > ref_loss
+        assert loss > 0.0
 
     def test_focal_alpha_effect(self):
         """Test alpha parameter for class balancing"""

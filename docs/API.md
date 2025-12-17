@@ -2,7 +2,7 @@
 
 ## Overview
 
-The Miyraa API provides emotion classification, VAD (Valence-Arousal-Dominance) analysis, and safety detection for text inputs. Built with FastAPI, it supports both PyTorch and ONNX inference backends.
+The Miyraa API provides emotion classification, VAD (Valence-Arousal-Dominance) analysis representing the overall emotional state of the text, and safety detection for text inputs. Built with FastAPI, it supports both PyTorch and ONNX inference backends.
 
 **Base URL:** `http://localhost:8000`
 
@@ -42,7 +42,7 @@ print(response.json())
 
 ### 2. Analyze Emotion
 
-Analyze text for emotions, VAD scores, and safety classification.
+Analyze text for emotions, overall VAD state, and safety classification.
 
 **Endpoint:** `POST /api/v1/analyze`
 
@@ -59,14 +59,15 @@ Analyze text for emotions, VAD scores, and safety classification.
 **Parameters:**
 - `text` (string, required): Input text to analyze (max 512 characters recommended)
 - `scrub_pii` (boolean, optional): Whether to scrub PII before analysis (default: false)
-- `return_vad` (boolean, optional): Include VAD scores in response (default: true)
+- `return_vad` (boolean, optional): Include the overall VAD triple (valence, arousal, dominance) computed once per input (default: true)
 - `return_safety` (boolean, optional): Include safety classification (default: true)
 
 **Response:**
 ```json
 {
   "text": "I'm so excited about this amazing opportunity!",
-  "emotions": {
+  "emotion": "joy",
+  "emotion_scores": {
     "joy": 0.95,
     "excitement": 0.88,
     "admiration": 0.72,
@@ -79,6 +80,8 @@ Analyze text for emotions, VAD scores, and safety classification.
     "disgust": 0.01,
     "neutral": 0.05
   },
+
+  *Dominant emotion lives in the `emotion` field; read `emotion_scores` for the full multi-label distribution.*
   "vad": {
     "valence": 0.89,
     "arousal": 0.76,
@@ -126,7 +129,10 @@ payload = {
 response = requests.post(url, json=payload)
 result = response.json()
 
-print(f"Top emotion: {max(result['emotions'], key=result['emotions'].get)}")
+primary = result["emotion"]
+confidence = result["emotion_scores"].get(primary)
+
+print(f"Primary emotion: {primary} (confidence {confidence:.2f})")
 print(f"VAD Valence: {result['vad']['valence']:.2f}")
 print(f"Is safe: {result['safety']['safe']}")
 ```
@@ -148,6 +154,20 @@ fetch('http://localhost:8000/api/v1/analyze', {
 .then(response => response.json())
 .then(data => console.log(data));
 ```
+
+---
+
+### Emotion Output Interpretation
+
+- The model always produces a full multi-label distribution in `emotion_scores` (one probability per emotion).
+- The `emotion` field is a convenience summary equal to the highest-probability label in `emotion_scores`.
+- The confidence for the primary emotion is `emotion_scores[emotion]`; clients needing rich output should read directly from the distribution.
+- VAD represents the overall emotional state of the text, is computed once per input, and remains independent of the emotion label distribution.
+- You can safely expose only the dominant emotion in downstream products while retaining multi-emotion data for analytics.
+
+> **Answering the big question**: The API returns the whole probability distribution *and* a dominant label. Check `emotion_scores` when you need multiple emotions; rely on `emotion` when you only need the top result.
+
+Emotion labels answer what is felt; VAD describes how strongly and in what direction.
 
 ---
 
@@ -174,7 +194,7 @@ Analyze multiple texts in a single request for better throughput.
 **Parameters:**
 - `texts` (array of strings, required): List of texts to analyze (max 100 per request)
 - `scrub_pii` (boolean, optional): Whether to scrub PII (default: false)
-- `return_vad` (boolean, optional): Include VAD scores (default: true)
+- `return_vad` (boolean, optional): Include the overall VAD triple (valence, arousal, dominance) computed once per input (default: true)
 - `return_safety` (boolean, optional): Include safety scores (default: true)
 
 **Response:**
@@ -183,19 +203,22 @@ Analyze multiple texts in a single request for better throughput.
   "results": [
     {
       "text": "I'm so happy today!",
-      "emotions": {...},
+      "emotion": "joy",
+      "emotion_scores": {...},
       "vad": {...},
       "safety": {...}
     },
     {
       "text": "This is frustrating.",
-      "emotions": {...},
+      "emotion": "anger",
+      "emotion_scores": {...},
       "vad": {...},
       "safety": {...}
     },
     {
       "text": "Feeling calm and peaceful.",
-      "emotions": {...},
+      "emotion": "calm",
+      "emotion_scores": {...},
       "vad": {...},
       "safety": {...}
     }

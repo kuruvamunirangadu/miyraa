@@ -84,6 +84,11 @@ app = FastAPI(
     version="1.0.0"
 )
 
+
+def load_model():
+    """Backward-compatible shim for legacy tests expecting load_model."""
+    return get_engine()
+
 # Include advanced features router
 app.include_router(advanced_router, prefix="/api/v1", tags=["advanced"])
 

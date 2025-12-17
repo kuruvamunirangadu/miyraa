@@ -5,7 +5,7 @@ Production-ready multi-task emotion classification system with comprehensive pre
 ## Features
 
 - 🎭 **11 Core Emotions**: joy, love, surprise, sadness, anger, fear, disgust, calm, excitement, confusion, neutral
-- 📊 **VAD Dimensions**: Valence-Arousal-Dominance regression for each emotion
+- 📊 **VAD Dimensions**: Valence-Arousal-Dominance regression representing the overall emotional state of the text
 - 🛡️ **Safety Detection**: 4 categories (toxic, profane, threatening, harassment)
 - ✍️ **Style Analysis**: 5 writing styles (formal, casual, assertive, empathetic, humorous)
 - 🎯 **Intent Recognition**: 6 intent types (statement, question, request, command, expression, social)
@@ -17,6 +17,9 @@ Production-ready multi-task emotion classification system with comprehensive pre
 - 🐳 **Docker Support**: Production containerization with health checks
 - 🔒 **PII Scrubbing**: Presidio integration for enterprise-grade privacy
 - 📝 **API Documentation**: Complete REST API with examples
+
+Emotion labels answer what is felt; VAD describes how strongly and in what direction.
+VAD is a single global valence-arousal-dominance triple per analyzed text, independent of individual emotion labels.
 
 ## Quick Start
 
@@ -294,6 +297,11 @@ See [`docs/API.md`](docs/API.md) for complete API documentation.
 - **[docs/DATA_QUALITY.md](docs/DATA_QUALITY.md)**: Data preprocessing, augmentation, and curation guidelines
 - **[docs/API.md](docs/API.md)**: Complete REST API documentation with examples
 - **[docs/ONNX_QUANT_BENCH.md](docs/ONNX_QUANT_BENCH.md)**: ONNX quantization benchmarks and performance optimization
+
+## Glossary
+
+- **Emotion**: Discrete category describing what is being felt (e.g., joy, calm, anger).
+- **VAD**: Valence–Arousal–Dominance triple summarizing overall intensity and direction of the text.
 
 ## Contributing
 

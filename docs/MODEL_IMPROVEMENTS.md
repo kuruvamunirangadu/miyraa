@@ -78,11 +78,6 @@ loss_weights = {
     'intent': 0.8     # Lower priority
 }
 
-multi_task_loss = MultiTaskLoss(loss_weights=loss_weights)
-```
-
-### Uncertainty-Based Weighting
-
 Automatically learns optimal weights based on task uncertainty:
 
 ```python
