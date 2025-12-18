@@ -27,7 +27,7 @@ class DummyEngine:
         self,
         anonymize_pii: bool = False,
         pii_min_confidence: float = 0.7,
-        safety_threshold: float = 0.5
+        safety_threshold: float = 0.35
     ):
         """
         Initialize dummy engine.
@@ -159,7 +159,7 @@ _ENGINE = None
 def get_engine(
     anonymize_pii: bool = False,
     pii_min_confidence: float = 0.7,
-    safety_threshold: float = 0.5
+    safety_threshold: float = 0.35
 ):
     """
     Get or create dummy engine instance.

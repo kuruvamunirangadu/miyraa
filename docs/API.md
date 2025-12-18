@@ -4,6 +4,16 @@
 
 The Miyraa API provides emotion classification, VAD (Valence-Arousal-Dominance) analysis representing the overall emotional state of the text, and safety detection for text inputs. Built with FastAPI, it supports both PyTorch and ONNX inference backends.
 
+Each response returns a primary emotion label alongside the full multi-label distribution in emotion_scores, plus a single global VAD triple computed for the entire input text.
+
+
+### Privacy Defaults
+
+- `/nlp/emotion/fingerprint` scrubs PII on every request. Presidio is used when installed and the service transparently falls back to the hardened regex scrubber otherwise.
+- Service logs store only hashed client identifiers and payload length metrics; raw text never appears in structured logs.
+- Responses strip any `text`, `raw_text`, or `processed_text` fields before returning and include hashed PII metadata for auditability instead of sensitive content.
+
+
 **Base URL:** `http://localhost:8000`
 
 ---
@@ -80,8 +90,6 @@ Analyze text for emotions, overall VAD state, and safety classification.
     "disgust": 0.01,
     "neutral": 0.05
   },
-
-  *Dominant emotion lives in the `emotion` field; read `emotion_scores` for the full multi-label distribution.*
   "vad": {
     "valence": 0.89,
     "arousal": 0.76,
@@ -101,6 +109,8 @@ Analyze text for emotions, overall VAD state, and safety classification.
   "pii_scrubbed": false
 }
 ```
+
+  Dominant emotion lives in the emotion field; read emotion_scores for the full multi-label distribution.
 
 **Example (curl):**
 ```bash
@@ -162,7 +172,7 @@ fetch('http://localhost:8000/api/v1/analyze', {
 - The model always produces a full multi-label distribution in `emotion_scores` (one probability per emotion).
 - The `emotion` field is a convenience summary equal to the highest-probability label in `emotion_scores`.
 - The confidence for the primary emotion is `emotion_scores[emotion]`; clients needing rich output should read directly from the distribution.
-- VAD represents the overall emotional state of the text, is computed once per input, and remains independent of the emotion label distribution.
+- VAD represents the global VAD per text triple, is computed once per input, and remains independent of the emotion label distribution.
 - You can safely expose only the dominant emotion in downstream products while retaining multi-emotion data for analytics.
 
 > **Answering the big question**: The API returns the whole probability distribution *and* a dominant label. Check `emotion_scores` when you need multiple emotions; rely on `emotion` when you only need the top result.
@@ -304,6 +314,12 @@ curl -X POST http://localhost:8000/api/v1/scrub-pii \
   "status_code": 400
 }
 ```
+
+---
+
+## Deprecated Server
+
+The legacy FastAPI entrypoint in server/app.py is deprecated. Use the REST endpoints documented above (served from src/api/main.py) for all new integrations.
 
 ### 422 Validation Error
 ```json

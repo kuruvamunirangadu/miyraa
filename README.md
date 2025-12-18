@@ -1,5 +1,8 @@
 # Miyraa NLP Emotion Engine
 
+**Version:** 1.0  
+**Last Updated:** December 18, 2025
+
 Production-ready multi-task emotion classification system with comprehensive preprocessing, augmentation, and data quality tools. Supports 11 core emotions, VAD dimensions, safety detection, style analysis, and intent recognition.
 
 ## Features
@@ -15,11 +18,32 @@ Production-ready multi-task emotion classification system with comprehensive pre
 - 🎯 **Regularization**: Dropout, layer normalization, early stopping, gradient clipping
 - 🔄 **5 Backbones Supported**: MiniLM-L6/L12, XtremeDistil, DistilRoBERTa, XLM-RoBERTa
 - 🐳 **Docker Support**: Production containerization with health checks
-- 🔒 **PII Scrubbing**: Presidio integration for enterprise-grade privacy
+- 🔒 **PII Scrubbing**: Presidio integration enabled by default with hashed audit logging
 - 📝 **API Documentation**: Complete REST API with examples
 
 Emotion labels answer what is felt; VAD describes how strongly and in what direction.
 VAD is a single global valence-arousal-dominance triple per analyzed text, independent of individual emotion labels.
+
+## Privacy Guarantees
+
+- PII scrubbing executes on every request using Presidio when available and falls back to hardened regex scrubbing otherwise.
+- Request logs capture hashed client identifiers and text lengths only; raw payloads never leave the request scope.
+- API responses strip any raw or sanitized text fields and expose only hashed PII metadata for downstream auditing.
+
+## Why Miyraa NLP Is Different
+
+- **Unified multi-task inference**: A single forward pass delivers emotions, VAD, intent, style, and safety, reducing latency and integration complexity (see [docs/PITCH_TECH_SUMMARY.md](docs/PITCH_TECH_SUMMARY.md)).
+- **Privacy-by-default pipeline**: Requests run through automatic PII scrubbing with hashed auditing and zero raw-text logging, validated in [docs/PII_AND_SAFETY_GUIDE.md](docs/PII_AND_SAFETY_GUIDE.md) and [tests/test_privacy.py](tests/test_privacy.py).
+- **Production-ready ops**: Health/readiness probes, Prometheus metrics, and Docker hardening keep the service deployable in regulated environments (see [Dockerfile](Dockerfile) and [docs/DEPLOYMENT_GUIDE.md](docs/DEPLOYMENT_GUIDE.md)).
+- **Android-first delivery**: SDK mapper guarantees consistent UI behavior, tone alignment, and safety gating across clients (see [docs/ANDROID_INTEGRATION_ONEPAGER.md](docs/ANDROID_INTEGRATION_ONEPAGER.md)).
+
+## Emotion Output Contract
+
+- The API exposes a dominant emotion field (emotion) for quick UI surfaces.
+- The model simultaneously returns a full multi-label distribution in emotion_scores for analytics and multi-select UX flows.
+- The dominant label always corresponds to the highest-probability entry in emotion_scores.
+- Client applications should consult emotion_scores whenever they need more than the primary label.
+- The vad object is the global VAD per text triple (valence, arousal, dominance) for the entire message.
 
 ## Quick Start
 
@@ -188,7 +212,7 @@ miyraa/
 │   │   └── training/
 │   │       └── losses.py       # Multi-task loss functions
 │   └── server/
-│       └── app.py              # Legacy server
+│       └── app.py              # Legacy server (deprecated; use src/api/main.py)
 ├── scripts/
 │   ├── generate_curated_samples.py    # Create curated dataset
 │   ├── generate_validation_set.py     # Create validation set
@@ -281,7 +305,13 @@ Response:
 ```json
 {
   "emotion": "joy",
-  "confidence": 0.92,
+  "emotion_scores": {
+    "joy": 0.92,
+    "excitement": 0.81,
+    "love": 0.74,
+    "optimism": 0.62,
+    "neutral": 0.18
+  },
   "vad": {"valence": 0.85, "arousal": 0.65, "dominance": 0.70},
   "style": "casual",
   "intent": "expression",
@@ -297,6 +327,13 @@ See [`docs/API.md`](docs/API.md) for complete API documentation.
 - **[docs/DATA_QUALITY.md](docs/DATA_QUALITY.md)**: Data preprocessing, augmentation, and curation guidelines
 - **[docs/API.md](docs/API.md)**: Complete REST API documentation with examples
 - **[docs/ONNX_QUANT_BENCH.md](docs/ONNX_QUANT_BENCH.md)**: ONNX quantization benchmarks and performance optimization
+
+## How Android UI Interprets NLP Outputs
+
+- Reads emotion to populate the headline badge and summary copy.
+- Uses emotion_scores to surface supporting emotions (chips, tooltips, analytics).
+- Maps the global VAD triple to intensity meters and mood gradients for the entire message.
+- Consumes safety/style/intent classifiers for contextual warnings, while legacy server/app.py is deprecated for mobile.
 
 ## Glossary
 

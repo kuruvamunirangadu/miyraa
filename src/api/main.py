@@ -104,6 +104,20 @@ _HEALTH_STATE = {
 }
 
 
+def _strip_text_fields(payload):
+    """Remove raw text fields from payload recursively."""
+    if isinstance(payload, dict):
+        for key in ("text", "raw_text", "processed_text"):
+            if key in payload:
+                payload.pop(key)
+        for key, value in list(payload.items()):
+            payload[key] = _strip_text_fields(value)
+    elif isinstance(payload, list):
+        for index, item in enumerate(payload):
+            payload[index] = _strip_text_fields(item)
+    return payload
+
+
 @app.on_event("startup")
 async def startup_event():
     """Warm the engine and initialize services"""
@@ -215,6 +229,7 @@ async def fingerprint(payload: TextIn, request: Request):
         
         engine = get_engine()
         result = engine.predict(text[:128])  # cap text length for latency
+        result = _strip_text_fields(result)
         
         # attach hashed mapping (do not include raw PII)
         result["pii_hashes"] = pii_map

@@ -1,2 +1,30 @@
-outputs/*.onnx  
-outputs/*.pt 
+outputs/*.onnx
+outputs/*.pt
+
+# Virtual environments
+.venv/
+.venv*/
+
+# Python artifacts
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Logs and runtime outputs
+*.log
+calib.log
+
+# Generated datasets and reports
+data/processed/
+reports/
+outputs/
+
+# PyInstaller / build artifacts
+build/
+dist/
+
+# IDE
+.idea/
+.vscode/
+*.code-workspace

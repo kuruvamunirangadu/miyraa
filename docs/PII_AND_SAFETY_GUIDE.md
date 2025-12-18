@@ -33,6 +33,8 @@ The Miyraa PII & Safety system provides enterprise-grade content moderation with
 - **Safety Risk Scoring**: Convert binary predictions to 0-1 risk index
 - **Adaptive Thresholds**: Context-aware safety filtering
 
+**Default Service Behavior**: The production API always runs PII scrubbing before inference, logs only hashed identifiers and text lengths, and removes raw or sanitized text fields from responses. When Presidio is unavailable the system automatically falls back to the hardened regex scrubber.
+
 ### Architecture
 
 ```
@@ -205,6 +207,8 @@ for text in texts:
 - Risk levels (safe/low/medium/high/critical)
 - Category-specific scores (hate, violence, sexual, harassment)
 
+**Tuned Default Threshold**: Production services now apply a safety threshold of 0.35 (based on the latest safety_summary report) to favor recall on risky content while maintaining acceptable precision.
+
 ✅ **Context-Aware**:
 - Adaptive thresholds based on user age, platform, content type
 - Strict mode for sensitive contexts
@@ -356,7 +360,7 @@ from src.nlp.inference.dummy_engine import get_engine
 engine = get_engine(
     anonymize_pii=True,
     pii_min_confidence=0.7,
-    safety_threshold=0.5
+    safety_threshold=0.35
 )
 
 # Make prediction
